@@ -35,7 +35,7 @@ const HealthStatus = () => {
 
   if (loading) {
     return (
-      <Stack alignItems="center">
+      <Stack sx={{ alignItems: 'center' }}>
         <CircularProgress aria-label="Checking system status" />
       </Stack>
     );
@@ -51,7 +51,7 @@ const HealthStatus = () => {
 
   return (
     <Alert severity="success">
-      <Typography fontWeight={600}>
+      <Typography sx={{ fontWeight: 600 }}>
         AsyncOps is online
       </Typography>
 
