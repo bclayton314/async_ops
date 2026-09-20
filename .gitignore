@@ -1,8 +1,30 @@
-# Created by venv; see https://docs.python.org/3/library/venv.html
-backend/.venv/
-__pycache__/
-*.pyc
-node_modules/
+# Environment
 .env
 .env.*
 !.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+dist/
+coverage/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

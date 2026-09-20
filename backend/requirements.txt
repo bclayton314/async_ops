@@ -6,6 +6,11 @@ psycopg[binary]
 alembic
 
 pydantic-settings
+pwdlib[argon2]
+email-validator
 
 pytest
 httpx
+
+PyJWT
+python-multipart
