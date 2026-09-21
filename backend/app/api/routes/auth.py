@@ -7,6 +7,9 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.core.security import create_access_token
 from app.schemas.auth import Token
 from app.services.users import authenticate_user
+from app.api.dependencies import get_current_user
+from app.models.user import User
+
 
 router = APIRouter()
 
@@ -68,3 +71,12 @@ def login(
         access_token=access_token,
         token_type="bearer",
     )
+
+@router.get(
+    "/me",
+    response_model=UserRead,
+)
+def me(
+    current_user: User = Depends(get_current_user),
+) -> UserRead:
+    return current_user
