@@ -38,3 +38,15 @@ Copy the example environment file:
 
 ```bash
 cp .env.example .env
+
+
+
+docker compose up --build -d
+
+docker compose ps
+
+docker compose exec backend alembic upgrade head
+
+docker compose exec backend pytest
+
+http://localhost:5173
