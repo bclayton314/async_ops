@@ -32,3 +32,28 @@ def create_user(
     db.refresh(user)
 
     return user
+
+def authenticate_user(
+    db: Session,
+    *,
+    email: str,
+    password: str,
+) -> User | None:
+    user = get_user_by_email(
+        db,
+        email,
+    )
+
+    if user is None:
+        return None
+
+    if not verify_password(
+        password,
+        user.password_hash,
+    ):
+        return None
+
+    if not user.is_active:
+        return None
+
+    return user
