@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.models.membership import WorkspaceMembership, WorkspaceRole
 from app.models.user import User
 from app.models.workspace import Workspace
-
+from uuid import UUID
 
 def get_workspace_by_slug(
     db: Session,
@@ -68,3 +68,67 @@ def list_user_workspaces(
     )
 
     return list(db.execute(statement).all())
+
+def get_workspace_membership(
+    db: Session,
+    *,
+    workspace_id: UUID,
+    user_id: UUID,
+) -> WorkspaceMembership | None:
+    statement = select(WorkspaceMembership).where(
+        WorkspaceMembership.workspace_id == workspace_id,
+        WorkspaceMembership.user_id == user_id,
+    )
+
+    return db.scalar(statement)
+
+
+def add_workspace_member(
+    db: Session,
+    *,
+    workspace: Workspace,
+    user: User,
+    role: WorkspaceRole,
+) -> WorkspaceMembership:
+    membership = WorkspaceMembership(
+        workspace_id=workspace.id,
+        user_id=user.id,
+        role=role,
+    )
+
+    db.add(membership)
+    db.commit()
+    db.refresh(membership)
+
+    return membership
+
+
+def list_workspace_members(
+    db: Session,
+    *,
+    workspace_id: UUID,
+):
+    statement = (
+        select(
+            WorkspaceMembership,
+            User,
+        )
+        .join(
+            User,
+            User.id == WorkspaceMembership.user_id,
+        )
+        .where(
+            WorkspaceMembership.workspace_id == workspace_id,
+        )
+        .order_by(User.email)
+    )
+
+    return list(db.execute(statement).all())
+
+def can_manage_members(
+    membership: WorkspaceMembership,
+) -> bool:
+    return membership.role in {
+        WorkspaceRole.OWNER,
+        WorkspaceRole.ADMIN,
+    }

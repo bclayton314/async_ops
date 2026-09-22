@@ -1,8 +1,6 @@
 from datetime import datetime
 from uuid import UUID
-
-from pydantic import BaseModel, ConfigDict, Field
-
+from pydantic import BaseModel, ConfigDict, Field, EmailStr
 from app.models.membership import WorkspaceRole
 
 
@@ -37,3 +35,15 @@ class WorkspaceRead(BaseModel):
 
 class WorkspaceWithRole(WorkspaceRead):
     role: WorkspaceRole
+
+class WorkspaceMemberAdd(BaseModel):
+    email: EmailStr
+    role: WorkspaceRole = WorkspaceRole.MEMBER
+
+
+class WorkspaceMemberRead(BaseModel):
+    id: UUID
+    user_id: UUID
+    email: EmailStr
+    role: WorkspaceRole
+    created_at: datetime
