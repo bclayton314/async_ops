@@ -282,3 +282,98 @@ def test_member_cannot_add_workspace_members(client):
     )
 
     assert response.status_code == 403
+
+def test_owner_can_promote_member_to_admin(client):
+    owner_token = register_and_login(
+        client,
+        email="owner@example.com",
+    )
+
+    register_and_login(
+        client,
+        email="member@example.com",
+    )
+
+    workspace = create_workspace(
+        client,
+        owner_token,
+    )
+
+    add_response = add_member(
+        client,
+        owner_token,
+        workspace["id"],
+        email="member@example.com",
+    )
+
+    assert add_response.status_code == 201
+
+    user_id = add_response.json()["user_id"]
+
+    response = client.patch(
+        f"/api/workspaces/{workspace['id']}/members/{user_id}",
+        headers=auth_headers(owner_token),
+        json={
+            "role": "admin",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["role"] == "admin"
+
+def test_owner_can_remove_member(client):
+    owner_token = register_and_login(
+        client,
+        email="owner@example.com",
+    )
+
+    register_and_login(
+        client,
+        email="member@example.com",
+    )
+
+    workspace = create_workspace(
+        client,
+        owner_token,
+    )
+
+    add_response = add_member(
+        client,
+        owner_token,
+        workspace["id"],
+        email="member@example.com",
+    )
+
+    user_id = add_response.json()["user_id"]
+
+    response = client.delete(
+        f"/api/workspaces/{workspace['id']}/members/{user_id}",
+        headers=auth_headers(owner_token),
+    )
+
+    assert response.status_code == 204
+
+def test_workspace_owner_cannot_be_removed(client):
+    owner_token = register_and_login(
+        client,
+        email="owner@example.com",
+    )
+
+    workspace = create_workspace(
+        client,
+        owner_token,
+    )
+
+    members_response = client.get(
+        f"/api/workspaces/{workspace['id']}/members",
+        headers=auth_headers(owner_token),
+    )
+
+    owner = members_response.json()[0]
+
+    response = client.delete(
+        f"/api/workspaces/{workspace['id']}/members/{owner['user_id']}",
+        headers=auth_headers(owner_token),
+    )
+
+    assert response.status_code == 400
