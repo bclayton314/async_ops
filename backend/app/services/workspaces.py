@@ -132,3 +132,24 @@ def can_manage_members(
         WorkspaceRole.OWNER,
         WorkspaceRole.ADMIN,
     }
+
+def update_workspace_member_role(
+    db: Session,
+    *,
+    membership: WorkspaceMembership,
+    role: WorkspaceRole,
+) -> WorkspaceMembership:
+    membership.role = role
+
+    db.commit()
+    db.refresh(membership)
+
+    return membership
+
+def remove_workspace_member(
+    db: Session,
+    *,
+    membership: WorkspaceMembership,
+) -> None:
+    db.delete(membership)
+    db.commit()
