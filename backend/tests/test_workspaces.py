@@ -41,6 +41,45 @@ def auth_headers(token: str) -> dict[str, str]:
         "Authorization": f"Bearer {token}",
     }
 
+def create_workspace(
+    client,
+    token: str,
+    *,
+    name: str = "Engineering",
+    slug: str = "engineering",
+):
+    response = client.post(
+        "/api/workspaces",
+        headers=auth_headers(token),
+        json={
+            "name": name,
+            "slug": slug,
+        },
+    )
+
+    assert response.status_code == 201
+
+    return response.json()
+
+def add_member(
+    client,
+    owner_token: str,
+    workspace_id: str,
+    *,
+    email: str,
+    role: str = "member",
+):
+    response = client.post(
+        f"/api/workspaces/{workspace_id}/members",
+        headers=auth_headers(owner_token),
+        json={
+            "email": email,
+            "role": role,
+        },
+    )
+
+    return response
+
 def test_authenticated_user_can_create_workspace(client):
     token = register_and_login(
         client,
@@ -204,3 +243,42 @@ def test_users_only_see_their_own_workspaces(client):
 
     assert user_two_response.status_code == 200
     assert user_two_response.json() == []
+
+def test_member_cannot_add_workspace_members(client):
+    owner_token = register_and_login(
+        client,
+        email="owner@example.com",
+    )
+
+    member_token = register_and_login(
+        client,
+        email="member@example.com",
+    )
+
+    register_and_login(
+        client,
+        email="third@example.com",
+    )
+
+    workspace = create_workspace(
+        client,
+        owner_token,
+    )
+
+    response = add_member(
+        client,
+        owner_token,
+        workspace["id"],
+        email="member@example.com",
+    )
+
+    assert response.status_code == 201
+
+    response = add_member(
+        client,
+        member_token,
+        workspace["id"],
+        email="third@example.com",
+    )
+
+    assert response.status_code == 403
