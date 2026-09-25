@@ -47,3 +47,6 @@ class WorkspaceMemberRead(BaseModel):
     email: EmailStr
     role: WorkspaceRole
     created_at: datetime
+
+class WorkspaceMemberRoleUpdate(BaseModel):
+    role: WorkspaceRole
