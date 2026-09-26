@@ -377,3 +377,90 @@ def test_workspace_owner_cannot_be_removed(client):
     )
 
     assert response.status_code == 400
+
+def test_admin_cannot_change_owner_role(client):
+    owner_token = register_and_login(
+        client,
+        email="owner@example.com",
+    )
+
+    admin_token = register_and_login(
+        client,
+        email="admin@example.com",
+    )
+
+    workspace = create_workspace(
+        client,
+        owner_token,
+    )
+
+    add_response = add_member(
+        client,
+        owner_token,
+        workspace["id"],
+        email="admin@example.com",
+        role="admin",
+    )
+
+    assert add_response.status_code == 201
+
+    members = client.get(
+        f"/api/workspaces/{workspace['id']}/members",
+        headers=auth_headers(owner_token),
+    ).json()
+
+    owner = next(
+        member for member in members
+        if member["role"] == "owner"
+    )
+
+    response = client.patch(
+        f"/api/workspaces/{workspace['id']}/members/{owner['user_id']}",
+        headers=auth_headers(admin_token),
+        json={
+            "role": "member",
+        },
+    )
+
+    assert response.status_code == 403
+
+def test_admin_cannot_remove_owner(client):
+    owner_token = register_and_login(
+        client,
+        email="owner@example.com",
+    )
+
+    admin_token = register_and_login(
+        client,
+        email="admin@example.com",
+    )
+
+    workspace = create_workspace(
+        client,
+        owner_token,
+    )
+
+    add_member(
+        client,
+        owner_token,
+        workspace["id"],
+        email="admin@example.com",
+        role="admin",
+    )
+
+    members = client.get(
+        f"/api/workspaces/{workspace['id']}/members",
+        headers=auth_headers(owner_token),
+    ).json()
+
+    owner = next(
+        member for member in members
+        if member["role"] == "owner"
+    )
+
+    response = client.delete(
+        f"/api/workspaces/{workspace['id']}/members/{owner['user_id']}",
+        headers=auth_headers(admin_token),
+    )
+
+    assert response.status_code == 403

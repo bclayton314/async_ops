@@ -17,16 +17,18 @@ from app.schemas.workspace import (
 from app.services.users import get_user_by_email
 from app.services.workspaces import (
     add_workspace_member,
+    can_change_member_role,
     can_manage_members,
+    can_remove_member,
     create_workspace,
     get_workspace_by_slug,
+    get_workspace_for_user,
     get_workspace_membership,
     list_user_workspaces,
     list_workspace_members,
     remove_workspace_member,
     update_workspace_member_role,
 )
-from app.models.membership import WorkspaceRole
 
 
 router = APIRouter()
@@ -85,6 +87,39 @@ def list_workspaces(
         )
         for workspace, role in rows
     ]
+
+
+@router.get(
+    "/{workspace_id}",
+    response_model=WorkspaceWithRole,
+)
+def get_workspace(
+    workspace_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> WorkspaceWithRole:
+    result = get_workspace_for_user(
+        db,
+        workspace_id=workspace_id,
+        user_id=current_user.id,
+    )
+
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workspace not found.",
+        )
+
+    workspace, role = result
+
+    return WorkspaceWithRole(
+        id=workspace.id,
+        name=workspace.name,
+        slug=workspace.slug,
+        created_at=workspace.created_at,
+        updated_at=workspace.updated_at,
+        role=role,
+    )
 
 
 @router.post(
@@ -192,6 +227,7 @@ def get_members(
         for workspace_membership, user in rows
     ]
 
+
 @router.patch(
     "/{workspace_id}/members/{user_id}",
     response_model=WorkspaceMemberRead,
@@ -215,12 +251,6 @@ def update_member_role(
             detail="Workspace not found.",
         )
 
-    if not can_manage_members(current_membership):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to manage workspace members.",
-        )
-
     target_membership = get_workspace_membership(
         db,
         workspace_id=workspace_id,
@@ -231,6 +261,16 @@ def update_member_role(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Workspace member not found.",
+        )
+
+    if not can_change_member_role(
+        current_membership,
+        target_membership,
+        payload.role,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to change this member's role.",
         )
 
     target_user = db.get(
@@ -258,6 +298,7 @@ def update_member_role(
         created_at=updated_membership.created_at,
     )
 
+
 @router.delete(
     "/{workspace_id}/members/{user_id}",
     status_code=status.HTTP_204_NO_CONTENT,
@@ -280,12 +321,6 @@ def delete_member(
             detail="Workspace not found.",
         )
 
-    if not can_manage_members(current_membership):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to manage workspace members.",
-        )
-
     target_membership = get_workspace_membership(
         db,
         workspace_id=workspace_id,
@@ -298,10 +333,13 @@ def delete_member(
             detail="Workspace member not found.",
         )
 
-    if target_membership.role == WorkspaceRole.OWNER:
+    if not can_remove_member(
+        current_membership,
+        target_membership,
+    ):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Workspace owner cannot be removed.",
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to remove this workspace member.",
         )
 
     remove_workspace_member(
