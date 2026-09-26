@@ -41,6 +41,7 @@ def auth_headers(token: str) -> dict[str, str]:
         "Authorization": f"Bearer {token}",
     }
 
+
 def create_workspace(
     client,
     token: str,
@@ -61,6 +62,7 @@ def create_workspace(
 
     return response.json()
 
+
 def add_member(
     client,
     owner_token: str,
@@ -69,7 +71,7 @@ def add_member(
     email: str,
     role: str = "member",
 ):
-    response = client.post(
+    return client.post(
         f"/api/workspaces/{workspace_id}/members",
         headers=auth_headers(owner_token),
         json={
@@ -78,7 +80,6 @@ def add_member(
         },
     )
 
-    return response
 
 def test_authenticated_user_can_create_workspace(client):
     token = register_and_login(
@@ -103,6 +104,7 @@ def test_authenticated_user_can_create_workspace(client):
     assert data["slug"] == "engineering"
     assert "id" in data
 
+
 def test_workspace_creation_requires_authentication(client):
     response = client.post(
         "/api/workspaces",
@@ -113,6 +115,7 @@ def test_workspace_creation_requires_authentication(client):
     )
 
     assert response.status_code == 401
+
 
 def test_workspace_creator_becomes_owner(client, db):
     token = register_and_login(
@@ -137,6 +140,8 @@ def test_workspace_creator_becomes_owner(client, db):
         )
     )
 
+    assert user is not None
+
     membership = db.scalar(
         select(WorkspaceMembership).where(
             WorkspaceMembership.user_id == user.id,
@@ -145,6 +150,7 @@ def test_workspace_creator_becomes_owner(client, db):
 
     assert membership is not None
     assert membership.role == WorkspaceRole.OWNER
+
 
 def test_duplicate_workspace_slug_returns_409(client):
     token = register_and_login(
@@ -183,13 +189,9 @@ def test_user_can_list_their_workspaces(client):
         email="owner@example.com",
     )
 
-    client.post(
-        "/api/workspaces",
-        headers=auth_headers(token),
-        json={
-            "name": "Engineering",
-            "slug": "engineering",
-        },
+    create_workspace(
+        client,
+        token,
     )
 
     response = client.get(
@@ -206,6 +208,7 @@ def test_user_can_list_their_workspaces(client):
     assert data[0]["slug"] == "engineering"
     assert data[0]["role"] == "owner"
 
+
 def test_users_only_see_their_own_workspaces(client):
     user_one_token = register_and_login(
         client,
@@ -217,16 +220,12 @@ def test_users_only_see_their_own_workspaces(client):
         email="user2@example.com",
     )
 
-    response = client.post(
-        "/api/workspaces",
-        headers=auth_headers(user_one_token),
-        json={
-            "name": "User One Workspace",
-            "slug": "user-one-workspace",
-        },
+    create_workspace(
+        client,
+        user_one_token,
+        name="User One Workspace",
+        slug="user-one-workspace",
     )
-
-    assert response.status_code == 201
 
     user_one_response = client.get(
         "/api/workspaces",
@@ -243,6 +242,7 @@ def test_users_only_see_their_own_workspaces(client):
 
     assert user_two_response.status_code == 200
     assert user_two_response.json() == []
+
 
 def test_member_cannot_add_workspace_members(client):
     owner_token = register_and_login(
@@ -283,6 +283,7 @@ def test_member_cannot_add_workspace_members(client):
 
     assert response.status_code == 403
 
+
 def test_owner_can_promote_member_to_admin(client):
     owner_token = register_and_login(
         client,
@@ -321,6 +322,7 @@ def test_owner_can_promote_member_to_admin(client):
     assert response.status_code == 200
     assert response.json()["role"] == "admin"
 
+
 def test_owner_can_remove_member(client):
     owner_token = register_and_login(
         client,
@@ -344,6 +346,8 @@ def test_owner_can_remove_member(client):
         email="member@example.com",
     )
 
+    assert add_response.status_code == 201
+
     user_id = add_response.json()["user_id"]
 
     response = client.delete(
@@ -352,6 +356,7 @@ def test_owner_can_remove_member(client):
     )
 
     assert response.status_code == 204
+
 
 def test_workspace_owner_cannot_be_removed(client):
     owner_token = register_and_login(
@@ -369,14 +374,21 @@ def test_workspace_owner_cannot_be_removed(client):
         headers=auth_headers(owner_token),
     )
 
-    owner = members_response.json()[0]
+    assert members_response.status_code == 200
+
+    owner = next(
+        member
+        for member in members_response.json()
+        if member["role"] == "owner"
+    )
 
     response = client.delete(
         f"/api/workspaces/{workspace['id']}/members/{owner['user_id']}",
         headers=auth_headers(owner_token),
     )
 
-    assert response.status_code == 400
+    assert response.status_code == 403
+
 
 def test_admin_cannot_change_owner_role(client):
     owner_token = register_and_login(
@@ -404,13 +416,16 @@ def test_admin_cannot_change_owner_role(client):
 
     assert add_response.status_code == 201
 
-    members = client.get(
+    members_response = client.get(
         f"/api/workspaces/{workspace['id']}/members",
         headers=auth_headers(owner_token),
-    ).json()
+    )
+
+    assert members_response.status_code == 200
 
     owner = next(
-        member for member in members
+        member
+        for member in members_response.json()
         if member["role"] == "owner"
     )
 
@@ -423,6 +438,7 @@ def test_admin_cannot_change_owner_role(client):
     )
 
     assert response.status_code == 403
+
 
 def test_admin_cannot_remove_owner(client):
     owner_token = register_and_login(
@@ -440,7 +456,7 @@ def test_admin_cannot_remove_owner(client):
         owner_token,
     )
 
-    add_member(
+    add_response = add_member(
         client,
         owner_token,
         workspace["id"],
@@ -448,13 +464,18 @@ def test_admin_cannot_remove_owner(client):
         role="admin",
     )
 
-    members = client.get(
+    assert add_response.status_code == 201
+
+    members_response = client.get(
         f"/api/workspaces/{workspace['id']}/members",
         headers=auth_headers(owner_token),
-    ).json()
+    )
+
+    assert members_response.status_code == 200
 
     owner = next(
-        member for member in members
+        member
+        for member in members_response.json()
         if member["role"] == "owner"
     )
 
@@ -464,3 +485,53 @@ def test_admin_cannot_remove_owner(client):
     )
 
     assert response.status_code == 403
+
+
+def test_user_can_get_workspace_detail(client):
+    token = register_and_login(
+        client,
+        email="owner@example.com",
+    )
+
+    workspace = create_workspace(
+        client,
+        token,
+    )
+
+    response = client.get(
+        f"/api/workspaces/{workspace['id']}",
+        headers=auth_headers(token),
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["id"] == workspace["id"]
+    assert data["name"] == "Engineering"
+    assert data["slug"] == "engineering"
+    assert data["role"] == "owner"
+
+
+def test_non_member_cannot_get_workspace_detail(client):
+    owner_token = register_and_login(
+        client,
+        email="owner@example.com",
+    )
+
+    outsider_token = register_and_login(
+        client,
+        email="outsider@example.com",
+    )
+
+    workspace = create_workspace(
+        client,
+        owner_token,
+    )
+
+    response = client.get(
+        f"/api/workspaces/{workspace['id']}",
+        headers=auth_headers(outsider_token),
+    )
+
+    assert response.status_code == 404
