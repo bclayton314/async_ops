@@ -17,6 +17,7 @@ from app.schemas.workspace import (
 from app.services.users import get_user_by_email
 from app.services.workspaces import (
     add_workspace_member,
+    can_assign_role,
     can_change_member_role,
     can_manage_members,
     can_remove_member,
@@ -149,6 +150,15 @@ def add_member(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to manage workspace members.",
+        )
+
+    if not can_assign_role(
+        current_membership,
+        payload.role,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to assign this workspace role.",
         )
 
     user = get_user_by_email(
