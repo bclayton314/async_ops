@@ -153,3 +153,18 @@ def remove_workspace_member(
 ) -> None:
     db.delete(membership)
     db.commit()
+
+def can_assign_role(
+    actor: WorkspaceMembership,
+    role: WorkspaceRole,
+) -> bool:
+    if actor.role == WorkspaceRole.OWNER:
+        return role in {
+            WorkspaceRole.ADMIN,
+            WorkspaceRole.MEMBER,
+        }
+
+    if actor.role == WorkspaceRole.ADMIN:
+        return role == WorkspaceRole.MEMBER
+
+    return False
