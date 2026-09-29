@@ -168,3 +168,21 @@ def can_assign_role(
         return role == WorkspaceRole.MEMBER
 
     return False
+
+def update_workspace(
+    db: Session,
+    *,
+    workspace: Workspace,
+    name: str | None = None,
+    slug: str | None = None,
+) -> Workspace:
+    if name is not None:
+        workspace.name = name
+
+    if slug is not None:
+        workspace.slug = slug
+
+    db.commit()
+    db.refresh(workspace)
+
+    return workspace
