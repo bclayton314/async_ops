@@ -50,3 +50,17 @@ class WorkspaceMemberRead(BaseModel):
 
 class WorkspaceMemberRoleUpdate(BaseModel):
     role: WorkspaceRole
+
+class WorkspaceUpdate(BaseModel):
+    name: str | None = Field(
+        default=None,
+        min_length=2,
+        max_length=100,
+    )
+
+    slug: str | None = Field(
+        default=None,
+        min_length=2,
+        max_length=100,
+        pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$",
+    )

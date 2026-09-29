@@ -642,3 +642,5 @@ def test_owner_cannot_add_second_owner(client):
     )
 
     assert response.status_code == 403
+
+
