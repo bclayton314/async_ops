@@ -30,6 +30,7 @@ from app.services.workspaces import (
     list_user_workspaces,
     list_workspace_members,
     remove_workspace_member,
+    update_workspace,
     update_workspace_member_role,
 )
 
