@@ -616,3 +616,29 @@ def test_admin_can_add_regular_member(client):
 
     assert response.status_code == 201
     assert response.json()["role"] == "member"
+
+def test_owner_cannot_add_second_owner(client):
+    owner_token = register_and_login(
+        client,
+        email="owner@example.com",
+    )
+
+    register_and_login(
+        client,
+        email="second@example.com",
+    )
+
+    workspace = create_workspace(
+        client,
+        owner_token,
+    )
+
+    response = add_member(
+        client,
+        owner_token,
+        workspace["id"],
+        email="second@example.com",
+        role="owner",
+    )
+
+    assert response.status_code == 403
