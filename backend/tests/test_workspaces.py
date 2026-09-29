@@ -644,3 +644,64 @@ def test_owner_cannot_add_second_owner(client):
     assert response.status_code == 403
 
 
+def test_owner_can_update_workspace(client):
+    token = register_and_login(
+        client,
+        email="owner@example.com",
+    )
+
+    workspace = create_workspace(
+        client,
+        token,
+    )
+
+    response = client.patch(
+        f"/api/workspaces/{workspace['id']}",
+        headers=auth_headers(token),
+        json={
+            "name": "Platform Engineering",
+            "slug": "platform-engineering",
+        },
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["name"] == "Platform Engineering"
+    assert data["slug"] == "platform-engineering"
+    assert data["role"] == "owner"
+
+
+def test_member_cannot_update_workspace(client):
+    owner_token = register_and_login(
+        client,
+        email="owner@example.com",
+    )
+
+    member_token = register_and_login(
+        client,
+        email="member@example.com",
+    )
+
+    workspace = create_workspace(
+        client,
+        owner_token,
+    )
+
+    add_member(
+        client,
+        owner_token,
+        workspace["id"],
+        email="member@example.com",
+    )
+
+    response = client.patch(
+        f"/api/workspaces/{workspace['id']}",
+        headers=auth_headers(member_token),
+        json={
+            "name": "Unauthorized Rename",
+        },
+    )
+
+    assert response.status_code == 403

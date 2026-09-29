@@ -6,12 +6,14 @@ from sqlalchemy.orm import Session
 from app.api.dependencies import get_current_user
 from app.db.session import get_db
 from app.models.user import User
+from app.models.membership import WorkspaceRole
 from app.schemas.workspace import (
     WorkspaceCreate,
     WorkspaceMemberAdd,
     WorkspaceMemberRead,
     WorkspaceMemberRoleUpdate,
     WorkspaceRead,
+    WorkspaceUpdate,
     WorkspaceWithRole,
 )
 from app.services.users import get_user_by_email
@@ -356,3 +358,67 @@ def delete_member(
         db,
         membership=target_membership,
     )
+
+
+@router.patch(
+    "/{workspace_id}",
+    response_model=WorkspaceWithRole,
+)
+def update_workspace_details(
+    workspace_id: UUID,
+    payload: WorkspaceUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> WorkspaceWithRole:
+    membership = get_workspace_membership(
+        db,
+        workspace_id=workspace_id,
+        user_id=current_user.id,
+    )
+
+    if membership is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workspace not found.",
+        )
+
+    if membership.role != WorkspaceRole.OWNER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the workspace owner can update workspace settings.",
+        )
+
+    if payload.slug is not None:
+        existing_workspace = get_workspace_by_slug(
+            db,
+            payload.slug,
+        )
+
+        if (
+            existing_workspace is not None
+            and existing_workspace.id != workspace_id
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A workspace with this slug already exists.",
+            )
+
+    workspace = membership.workspace
+
+    updated_workspace = update_workspace(
+        db,
+        workspace=workspace,
+        name=payload.name,
+        slug=payload.slug,
+    )
+
+    return WorkspaceWithRole(
+        id=updated_workspace.id,
+        name=updated_workspace.name,
+        slug=updated_workspace.slug,
+        created_at=updated_workspace.created_at,
+        updated_at=updated_workspace.updated_at,
+        role=membership.role,
+    )
+
+
