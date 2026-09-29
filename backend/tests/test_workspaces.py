@@ -535,3 +535,44 @@ def test_non_member_cannot_get_workspace_detail(client):
     )
 
     assert response.status_code == 404
+
+def test_admin_can_only_add_members_as_member(client):
+    owner_token = register_and_login(
+        client,
+        email="owner@example.com",
+    )
+
+    admin_token = register_and_login(
+        client,
+        email="admin@example.com",
+    )
+
+    register_and_login(
+        client,
+        email="new-user@example.com",
+    )
+
+    workspace = create_workspace(
+        client,
+        owner_token,
+    )
+
+    add_response = add_member(
+        client,
+        owner_token,
+        workspace["id"],
+        email="admin@example.com",
+        role="admin",
+    )
+
+    assert add_response.status_code == 201
+
+    response = add_member(
+        client,
+        admin_token,
+        workspace["id"],
+        email="new-user@example.com",
+        role="admin",
+    )
+
+    assert response.status_code == 403
