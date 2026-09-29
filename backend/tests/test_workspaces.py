@@ -576,3 +576,43 @@ def test_admin_can_only_add_members_as_member(client):
     )
 
     assert response.status_code == 403
+
+def test_admin_can_add_regular_member(client):
+    owner_token = register_and_login(
+        client,
+        email="owner@example.com",
+    )
+
+    admin_token = register_and_login(
+        client,
+        email="admin@example.com",
+    )
+
+    register_and_login(
+        client,
+        email="member@example.com",
+    )
+
+    workspace = create_workspace(
+        client,
+        owner_token,
+    )
+
+    add_member(
+        client,
+        owner_token,
+        workspace["id"],
+        email="admin@example.com",
+        role="admin",
+    )
+
+    response = add_member(
+        client,
+        admin_token,
+        workspace["id"],
+        email="member@example.com",
+        role="member",
+    )
+
+    assert response.status_code == 201
+    assert response.json()["role"] == "member"
