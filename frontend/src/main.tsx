@@ -4,11 +4,15 @@ import { createRoot } from 'react-dom/client';
 import CssBaseline from '@mui/material/CssBaseline';
 
 import App from './App';
+import { AuthProvider } from './auth/AuthContext';
 
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <CssBaseline />
-    <App />
+
+    <AuthProvider>
+      <App />
+    </AuthProvider>
   </StrictMode>,
 );
