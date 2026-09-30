@@ -12,12 +12,3 @@ export interface Workspace {
   updated_at: string;
   role: WorkspaceRole;
 }
-
-
-export interface WorkspaceMember {
-  id: string;
-  user_id: string;
-  email: string;
-  role: WorkspaceRole;
-  created_at: string;
-}

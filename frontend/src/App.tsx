@@ -1,3 +1,6 @@
+import { useState } from 'react';
+
+import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import Container from '@mui/material/Container';
 import Paper from '@mui/material/Paper';
@@ -7,6 +10,7 @@ import Typography from '@mui/material/Typography';
 import { useAuth } from './auth/AuthContext';
 import HealthStatus from './components/HealthStatus';
 import LoginForm from './components/LoginForm';
+import RegisterForm from './components/RegisterForm';
 import UserPanel from './components/UserPanel';
 
 
@@ -15,6 +19,8 @@ const App = () => {
     user,
     loading,
   } = useAuth();
+
+  const [showRegister, setShowRegister] = useState(false);
 
   return (
     <Container
@@ -51,7 +57,24 @@ const App = () => {
               />
             </Stack>
           ) : user === null ? (
-            <LoginForm />
+            <Stack spacing={2}>
+              {showRegister ? (
+                <RegisterForm />
+              ) : (
+                <LoginForm />
+              )}
+
+              <Button
+                variant="text"
+                onClick={() => {
+                  setShowRegister((value) => !value);
+                }}
+              >
+                {showRegister
+                  ? 'Already have an account? Sign in'
+                  : 'Need an account? Register'}
+              </Button>
+            </Stack>
           ) : (
             <UserPanel />
           )}

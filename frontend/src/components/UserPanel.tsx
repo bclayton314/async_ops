@@ -1,8 +1,11 @@
 import Button from '@mui/material/Button';
+import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
 import { useAuth } from '../auth/AuthContext';
+
+import WorkspaceList from './WorkspaceList';
 
 
 const UserPanel = () => {
@@ -16,24 +19,40 @@ const UserPanel = () => {
   }
 
   return (
-    <Stack spacing={2}>
-      <Typography variant="h5">
-        Welcome to AsyncOps
-      </Typography>
-
-      <Typography color="text.secondary">
-        Signed in as {user.email}
-      </Typography>
-
-      <Button
-        variant="outlined"
-        onClick={logout}
-        sx={{
-          alignSelf: 'flex-start',
+    <Stack spacing={4}>
+      <Stack
+        direction={{
+          xs: 'column',
+          sm: 'row',
+        }}
+        spacing={2}
+        justifyContent="space-between"
+        alignItems={{
+          xs: 'flex-start',
+          sm: 'center',
         }}
       >
-        Sign out
-      </Button>
+        <Stack spacing={0.5}>
+          <Typography variant="h5">
+            Dashboard
+          </Typography>
+
+          <Typography color="text.secondary">
+            Signed in as {user.email}
+          </Typography>
+        </Stack>
+
+        <Button
+          variant="outlined"
+          onClick={logout}
+        >
+          Sign out
+        </Button>
+      </Stack>
+
+      <Divider />
+
+      <WorkspaceList />
     </Stack>
   );
 };
