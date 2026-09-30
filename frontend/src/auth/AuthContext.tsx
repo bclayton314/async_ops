@@ -9,6 +9,7 @@ import {
 import {
   getCurrentUser,
   login as loginRequest,
+  register as registerRequest,
 } from '../api/auth';
 
 import {
@@ -19,6 +20,7 @@ import {
 
 import type {
   LoginRequest,
+  RegisterRequest,
   User,
 } from '../types/auth';
 
@@ -29,6 +31,10 @@ interface AuthContextValue {
 
   login: (
     credentials: LoginRequest,
+  ) => Promise<void>;
+
+  register: (
+    credentials: RegisterRequest,
   ) => Promise<void>;
 
   logout: () => void;
@@ -93,12 +99,21 @@ export const AuthProvider = ({
     setUser(null);
   };
 
+  const register = async (
+    credentials: RegisterRequest,
+  ): Promise<void> => {
+    await registerRequest(credentials);
+
+    await login(credentials);
+  };
+
   return (
     <AuthContext.Provider
       value={{
         user,
         loading,
         login,
+        register,
         logout,
       }}
     >
