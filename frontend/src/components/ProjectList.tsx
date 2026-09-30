@@ -22,6 +22,8 @@ import { getAccessToken } from '../auth/tokenStorage';
 import type { Project } from '../types/project';
 import type { Workspace } from '../types/workspace';
 
+import TaskList from './TaskList';
+
 
 interface ProjectListProps {
   workspace: Workspace;
@@ -33,6 +35,9 @@ const ProjectList = ({
 }: ProjectListProps) => {
   const [projects, setProjects] = useState<Project[]>([]);
 
+  const [selectedProject, setSelectedProject] =
+    useState<Project | null>(null);
+
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
 
@@ -42,23 +47,25 @@ const ProjectList = ({
     workspace.role === 'owner'
     || workspace.role === 'admin';
 
+
   const loadProjects = useCallback(
-    async () => {
+    async (): Promise<void> => {
       const token = getAccessToken();
 
       if (token === null) {
+        setError('Authentication token is missing.');
         return;
       }
 
       try {
         setError('');
 
-        setProjects(
-          await getProjects(
-            token,
-            workspace.id,
-          ),
+        const response = await getProjects(
+          token,
+          workspace.id,
         );
+
+        setProjects(response);
       } catch (err) {
         setError(
           err instanceof Error
@@ -70,9 +77,11 @@ const ProjectList = ({
     [workspace.id],
   );
 
+
   useEffect(() => {
     void loadProjects();
   }, [loadProjects]);
+
 
   const handleSubmit = async (
     event: FormEvent<HTMLFormElement>,
@@ -82,8 +91,11 @@ const ProjectList = ({
     const token = getAccessToken();
 
     if (token === null) {
+      setError('Authentication token is missing.');
       return;
     }
+
+    setError('');
 
     try {
       await createProject(
@@ -107,6 +119,43 @@ const ProjectList = ({
       );
     }
   };
+
+
+  if (selectedProject !== null) {
+    return (
+      <Stack spacing={3}>
+        <Button
+          variant="text"
+          onClick={() => {
+            setSelectedProject(null);
+          }}
+          sx={{
+            alignSelf: 'flex-start',
+          }}
+        >
+          ← Back to projects
+        </Button>
+
+        <Stack spacing={0.5}>
+          <Typography variant="h5">
+            {selectedProject.name}
+          </Typography>
+
+          {selectedProject.description && (
+            <Typography color="text.secondary">
+              {selectedProject.description}
+            </Typography>
+          )}
+        </Stack>
+
+        <TaskList
+          workspace={workspace}
+          project={selectedProject}
+        />
+      </Stack>
+    );
+  }
+
 
   return (
     <Stack spacing={3}>
@@ -171,18 +220,32 @@ const ProjectList = ({
                 p: 2,
               }}
             >
-              <Typography fontWeight={600}>
-                {project.name}
-              </Typography>
-
-              {project.description && (
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                >
-                  {project.description}
+              <Stack spacing={1}>
+                <Typography fontWeight={600}>
+                  {project.name}
                 </Typography>
-              )}
+
+                {project.description && (
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                  >
+                    {project.description}
+                  </Typography>
+                )}
+
+                <Button
+                  variant="text"
+                  onClick={() => {
+                    setSelectedProject(project);
+                  }}
+                  sx={{
+                    alignSelf: 'flex-start',
+                  }}
+                >
+                  Open
+                </Button>
+              </Stack>
             </Paper>
           ))}
         </Stack>

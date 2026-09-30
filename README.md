@@ -26,6 +26,23 @@ cloud deployment, and asynchronous engineering practices.
 - Alembic
 - Pytest
 
+## Features
+
+- User registration and JWT authentication
+- Persistent authenticated sessions
+- Multi-tenant workspaces
+- Owner, admin, and member roles
+- Workspace member management
+- Role-based authorization
+- Project creation and management
+- Task creation and status tracking
+- PostgreSQL persistence
+- SQLAlchemy ORM and Alembic migrations
+- React and TypeScript frontend
+- Docker Compose development environment
+- Automated backend and frontend tests
+- GitHub Actions CI
+
 ### Infrastructure
 
 - PostgreSQL
