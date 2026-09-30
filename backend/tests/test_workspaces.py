@@ -705,3 +705,69 @@ def test_member_cannot_update_workspace(client):
     )
 
     assert response.status_code == 403
+
+
+def test_workspace_update_rejects_duplicate_slug(client):
+    first_owner_token = register_and_login(
+        client,
+        email="owner1@example.com",
+    )
+
+    second_owner_token = register_and_login(
+        client,
+        email="owner2@example.com",
+    )
+
+    first_workspace = create_workspace(
+        client,
+        first_owner_token,
+        name="Engineering",
+        slug="engineering",
+    )
+
+    create_workspace(
+        client,
+        second_owner_token,
+        name="Product",
+        slug="product",
+    )
+
+    response = client.patch(
+        f"/api/workspaces/{first_workspace['id']}",
+        headers=auth_headers(first_owner_token),
+        json={
+            "slug": "product",
+        },
+    )
+
+    assert response.status_code == 409
+
+
+def test_non_member_cannot_update_workspace(client):
+    owner_token = register_and_login(
+        client,
+        email="owner@example.com",
+    )
+
+    outsider_token = register_and_login(
+        client,
+        email="outsider@example.com",
+    )
+
+    workspace = create_workspace(
+        client,
+        owner_token,
+    )
+
+    response = client.patch(
+        f"/api/workspaces/{workspace['id']}",
+        headers=auth_headers(outsider_token),
+        json={
+            "name": "Unauthorized Rename",
+        },
+    )
+
+    assert response.status_code == 404
+
+
+
