@@ -24,6 +24,7 @@ import type {
 } from '../types/workspace';
 
 import WorkspaceMembers from './WorkspaceMembers';
+import ProjectList from './ProjectList';
 
 
 interface WorkspaceDetailProps {
@@ -150,6 +151,12 @@ const WorkspaceDetail = ({
         workspace={workspace}
         members={members}
         onMembersChanged={loadWorkspace}
+      />
+
+      <Divider />
+
+      <ProjectList
+        workspace={workspace}
       />
     </Stack>
   );

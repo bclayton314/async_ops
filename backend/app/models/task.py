@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime
+from enum import Enum
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
     DateTime,
+    Enum as SQLEnum,
     ForeignKey,
     String,
     Text,
@@ -19,31 +21,62 @@ from sqlalchemy.orm import (
 from app.db.base import Base
 
 
-class Project(Base):
-    __tablename__ = "projects"
+class TaskStatus(str, Enum):
+    TODO = "todo"
+    IN_PROGRESS = "in_progress"
+    BLOCKED = "blocked"
+    DONE = "done"
+
+
+class TaskPriority(str, Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
+class Task(Base):
+    __tablename__ = "tasks"
 
     id: Mapped[UUID] = mapped_column(
         primary_key=True,
         default=uuid4,
     )
 
-    workspace_id: Mapped[UUID] = mapped_column(
+    project_id: Mapped[UUID] = mapped_column(
         ForeignKey(
-            "workspaces.id",
+            "projects.id",
             ondelete="CASCADE",
         ),
         nullable=False,
         index=True,
     )
 
-    name: Mapped[str] = mapped_column(
-        String(120),
+    title: Mapped[str] = mapped_column(
+        String(200),
         nullable=False,
     )
 
     description: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
+    )
+
+    status: Mapped[TaskStatus] = mapped_column(
+        SQLEnum(
+            TaskStatus,
+            name="task_status",
+        ),
+        default=TaskStatus.TODO,
+        nullable=False,
+    )
+
+    priority: Mapped[TaskPriority] = mapped_column(
+        SQLEnum(
+            TaskPriority,
+            name="task_priority",
+        ),
+        default=TaskPriority.MEDIUM,
+        nullable=False,
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -59,11 +92,6 @@ class Project(Base):
         nullable=False,
     )
 
-    workspace: Mapped["Workspace"] = relationship(
-        back_populates="projects",
-    )
-
-    tasks: Mapped[list["Task"]] = relationship(
-        back_populates="project",
-        cascade="all, delete-orphan",
+    project: Mapped["Project"] = relationship(
+        back_populates="tasks",
     )
