@@ -148,3 +148,75 @@ export const addWorkspaceMember = async (
 
   return response.json() as Promise<WorkspaceMember>;
 };
+
+
+export const updateWorkspaceMemberRole = async (
+  token: string,
+  workspaceId: string,
+  userId: string,
+  role: 'admin' | 'member',
+): Promise<WorkspaceMember> => {
+  const response = await fetch(
+    `/api/workspaces/${workspaceId}/members/${userId}`,
+    {
+      method: 'PATCH',
+
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+
+      body: JSON.stringify({
+        role,
+      }),
+    },
+  );
+
+  if (response.status === 403) {
+    throw new Error(
+      'You do not have permission to change this member.',
+    );
+  }
+
+  if (response.status === 404) {
+    throw new Error('Workspace member not found.');
+  }
+
+  if (!response.ok) {
+    throw new Error('Unable to update workspace member.');
+  }
+
+  return response.json() as Promise<WorkspaceMember>;
+};
+
+
+export const removeWorkspaceMember = async (
+  token: string,
+  workspaceId: string,
+  userId: string,
+): Promise<void> => {
+  const response = await fetch(
+    `/api/workspaces/${workspaceId}/members/${userId}`,
+    {
+      method: 'DELETE',
+
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  if (response.status === 403) {
+    throw new Error(
+      'You do not have permission to remove this member.',
+    );
+  }
+
+  if (response.status === 404) {
+    throw new Error('Workspace member not found.');
+  }
+
+  if (!response.ok) {
+    throw new Error('Unable to remove workspace member.');
+  }
+};

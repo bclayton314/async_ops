@@ -46,3 +46,9 @@ class Workspace(Base):
         back_populates="workspace",
         cascade="all, delete-orphan",
     )
+
+    projects: Mapped[list["Project"]] = relationship(
+        back_populates="workspace",
+        cascade="all, delete-orphan",
+    )
+    

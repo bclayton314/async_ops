@@ -11,7 +11,12 @@ import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 
-import { addWorkspaceMember } from '../api/workspaces';
+import {
+  addWorkspaceMember,
+  removeWorkspaceMember,
+  updateWorkspaceMemberRole,
+} from '../api/workspaces';
+
 import { getAccessToken } from '../auth/tokenStorage';
 
 import type {
@@ -33,6 +38,7 @@ const WorkspaceMembers = ({
   onMembersChanged,
 }: WorkspaceMembersProps) => {
   const [email, setEmail] = useState('');
+
   const [role, setRole] =
     useState<'admin' | 'member'>('member');
 
@@ -42,6 +48,7 @@ const WorkspaceMembers = ({
   const canManageMembers =
     workspace.role === 'owner'
     || workspace.role === 'admin';
+
 
   const handleSubmit = async (
     event: FormEvent<HTMLFormElement>,
@@ -81,6 +88,69 @@ const WorkspaceMembers = ({
     }
   };
 
+
+  const handleRoleChange = async (
+    member: WorkspaceMember,
+    newRole: 'admin' | 'member',
+  ): Promise<void> => {
+    const token = getAccessToken();
+
+    if (token === null) {
+      setError('Authentication token is missing.');
+      return;
+    }
+
+    setError('');
+
+    try {
+      await updateWorkspaceMemberRole(
+        token,
+        workspace.id,
+        member.user_id,
+        newRole,
+      );
+
+      await onMembersChanged();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to update member.',
+      );
+    }
+  };
+
+
+  const handleRemove = async (
+    member: WorkspaceMember,
+  ): Promise<void> => {
+    const token = getAccessToken();
+
+    if (token === null) {
+      setError('Authentication token is missing.');
+      return;
+    }
+
+    setError('');
+
+    try {
+      await removeWorkspaceMember(
+        token,
+        workspace.id,
+        member.user_id,
+      );
+
+      await onMembersChanged();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Unable to remove member.',
+      );
+    }
+  };
+
+
   return (
     <Stack spacing={3}>
       <Typography
@@ -90,31 +160,103 @@ const WorkspaceMembers = ({
         Members
       </Typography>
 
+      {error && (
+        <Alert severity="error">
+          {error}
+        </Alert>
+      )}
+
       <Paper
         variant="outlined"
         sx={{
           p: 2,
         }}
       >
-        <Stack spacing={1}>
-          {members.map((member) => (
-            <Stack
-              key={member.id}
-              direction={{
-                xs: 'column',
-                sm: 'row',
-              }}
-              justifyContent="space-between"
-            >
-              <Typography>
-                {member.email}
-              </Typography>
+        <Stack spacing={2}>
+          {members.map((member) => {
+            const isOwner = member.role === 'owner';
 
-              <Typography color="text.secondary">
-                {member.role}
-              </Typography>
-            </Stack>
-          ))}
+            const canEditMember =
+              workspace.role === 'owner'
+                ? !isOwner
+                : workspace.role === 'admin'
+                  ? member.role === 'member'
+                  : false;
+
+            return (
+              <Stack
+                key={member.id}
+                direction={{
+                  xs: 'column',
+                  sm: 'row',
+                }}
+                spacing={2}
+                justifyContent="space-between"
+                alignItems={{
+                  xs: 'stretch',
+                  sm: 'center',
+                }}
+              >
+                <Stack spacing={0.25}>
+                  <Typography>
+                    {member.email}
+                  </Typography>
+
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                  >
+                    {member.role}
+                  </Typography>
+                </Stack>
+
+                {canEditMember && (
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                  >
+                    {workspace.role === 'owner' && (
+                      <TextField
+                        select
+                        size="small"
+                        value={member.role}
+                        onChange={(event) => {
+                          void handleRoleChange(
+                            member,
+                            event.target.value as
+                              | 'admin'
+                              | 'member',
+                          );
+                        }}
+                        sx={{
+                          minWidth: 120,
+                        }}
+                      >
+                        <MenuItem value="member">
+                          Member
+                        </MenuItem>
+
+                        <MenuItem value="admin">
+                          Admin
+                        </MenuItem>
+                      </TextField>
+                    )}
+
+                    <Button
+                      color="error"
+                      variant="outlined"
+                      size="small"
+                      onClick={() => {
+                        void handleRemove(member);
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  </Stack>
+                )}
+              </Stack>
+            );
+          })}
         </Stack>
       </Paper>
 
@@ -127,12 +269,6 @@ const WorkspaceMembers = ({
           <Typography variant="h6">
             Add member
           </Typography>
-
-          {error && (
-            <Alert severity="error">
-              {error}
-            </Alert>
-          )}
 
           <TextField
             label="User email"
@@ -150,7 +286,9 @@ const WorkspaceMembers = ({
             value={role}
             onChange={(event) => {
               setRole(
-                event.target.value as 'admin' | 'member',
+                event.target.value as
+                  | 'admin'
+                  | 'member',
               );
             }}
           >

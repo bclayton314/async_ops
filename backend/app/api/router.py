@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.routes import auth, health, workspaces
+from app.api.routes import auth, health, projects, workspaces
 
 
 api_router = APIRouter()
@@ -21,4 +21,10 @@ api_router.include_router(
     workspaces.router,
     prefix="/workspaces",
     tags=["Workspaces"],
+)
+
+api_router.include_router(
+    projects.router,
+    prefix="/workspaces/{workspace_id}/projects",
+    tags=["Projects"],
 )
